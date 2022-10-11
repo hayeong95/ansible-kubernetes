@@ -1,4 +1,4 @@
-- hosts: tbd
+- hosts: # /etc/ansible/hosts에 작성한 서버 그룹명 입력
   become: true
   tasks:
     - name: Add gpg key for k8s
