@@ -1,0 +1,37 @@
+- hosts: tbd
+  become: true
+  tasks:
+    - name: Add gpg key for k8s
+      apt_key: 
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+    - name: Add k8s pkg list
+      shell:
+        cmd: |
+                cat <<EOF | tee /etc/apt/sources.list.d/kubernetes.list
+                deb https://apt.kubernetes.io/ kubernetes-xenial main
+                EOF
+    - name: Install kubernetes
+      apt:
+              update_cache: yes
+              name:
+                      - kubelet=1.20.15-00
+                      - kubectl=1.20.15-00
+                      - kubeadm=1.20.15-00
+    - name: mark version
+      shell: apt-mark hold kubelet kubeadm kubectl
+    - name: mkdir kube dir
+      file:
+              path: $HOME/.kube
+              state: directory
+    - name: Copy kube config file
+      copy:
+              src: /home/ubuntu/.kube/config
+              dest: $HOME/.kube/config
+    - name: chown config file
+      shell: chown $(id -u):$(id -g) $HOME/.kube/config
+    - name: check installation
+      shell: kubeadm version && kubectl version && kubelet --version
+      register: version
+    
+    - debug: var=version

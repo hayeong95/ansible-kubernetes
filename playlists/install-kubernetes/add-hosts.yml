@@ -1,0 +1,10 @@
+- hosts: # /etc/ansible/hosts에작성한 서버 그룹명 입력
+  become: true
+  tasks:
+    - name: Add k8s hosts
+      shell:
+        cmd: |
+             cat << EOF >> /etc/hosts
+             #<서버IP> <호스트명>
+
+             EOF

@@ -1,0 +1,12 @@
+- hosts: # /etc/ansible/hosts에 작성한 서버 그룹명 입력
+  become: true
+  tasks:
+    - name: Reset kubernetes
+      expect:
+        command: kubeadm reset
+        responses:
+                (.*)proceed(.*): 'y'
+      register: resetmsg
+    - debug: var=resetmsg 
+    - name: Remove settings
+      shell: rm -rf /etc/kubernetes/ && rm -rf /etc/cni/net.d && rm -rf ~/.kube

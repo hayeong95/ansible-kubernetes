@@ -1,0 +1,23 @@
+- hosts: # /etc/ansible/hosts에 작성한 서버 그룹명 입력
+  become: true
+  tasks:
+    - name: Copy ca
+      copy:
+        src: # ca.crt 위치
+        dest: /usr/share/ca-certificates
+    - name: Add crt 
+      shell: sed -i '$s/$/\nca.crt/g' /etc/ca-certificates.conf
+    - name: update crt
+      shell: update-ca-certificates
+    - name: mkdir
+      shell: mkdir -p /etc/docker/certs.d
+    - name: copy certs
+      copy:
+        src: "{{ item }}"
+        dest: /etc/docker/certs.d/
+      loop:
+        # - ca.crt 위치
+        # - 서버ip.cert 위치
+        # - 서버ip.key 위치
+    - name: Restart docker
+      shell: sudo systemctl restart docker

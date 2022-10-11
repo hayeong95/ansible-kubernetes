@@ -1,0 +1,81 @@
+- hosts:  # /etc/ansible/hosts에 작성한 서버 그룹명 입력
+  become: true
+  tasks:
+    - name: Stop swap
+      command: swapoff -a
+    - name: Delete swap file
+      file:
+              path : /{{item}}
+              state: absent
+      with_items:
+      - swap.img
+    - name: Comment swap in /etc/fstab
+      command: sudo sed -i '/swap.img/ s/^/#/' /etc/fstab
+    - name: Stop firewall
+      shell: systemctl disable ufw && systemctl stop ufw
+    - name: Stop apparmor
+      shell: /etc/init.d/apparmor stop|cat && /etc/init.d/apparmor teardown|cat
+    - name: Install docker tools
+      apt:
+        update_cache: yes
+        name:
+        - apt-transport-https
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+        - gnupg2
+        state: present
+    - name: Add gpg key and apt for docker
+      shell: |
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg |
+              apt-key add -
+              add-apt-repository \
+              "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+              $(lsb_release -cs) stable"
+    - name: Install docker-ce 19.03.15
+      shell: |
+              apt-get update && apt-get install -y containerd.io \
+              docker-ce=5:19.03.15~3-0~ubuntu-$(lsb_release -cs) docker-ce-cli=5:19.03.15~3-0~ubuntu-$(lsb_release -cs)
+    - name: Change docker daemon
+      shell:
+        cmd: |
+             cat << EOF > /etc/docker/daemon.json
+             {
+                  "default-runtime": "nvidia",
+                  "runtimes":{
+                          "nvidia":{
+                                  "path":"nvidia-container-runtime",
+                                  "runtimeArgs": []
+                                  }
+                          },
+                  "exec-opts":["native.cgroupdriver=systemd"],
+                  "log-driver": "json-file",
+                  "log-opts":{
+                          "max-size": "100m"
+                          },
+                          "storage-driver":"overlay2"
+              }
+              EOF
+    - name: Apply and restart docker service
+      shell: >
+              mkdir -p /etc/systemd/system/docker.service.d &&
+              systemctl daemon-reload &&
+              systemctl restart docker
+    - name: Add gpg key for nvidia-docker
+      apt_key:
+              url: https://nvidia.github.io/nvidia-docker/gpgkey
+              state: present
+    - name: Add apt for nvidia-docker
+      shell: |
+              distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+              curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+              tee /etc/apt/sources.list.d/nvidia-docker.list
+    - name: Install nvidia-docker
+      apt:
+              update_cache: yes
+              name: nvidia-docker2
+    - name: Reboot
+      shell: "sleep 5 && reboot"
+      async: 1
+      poll: 0

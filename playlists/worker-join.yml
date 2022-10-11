@@ -1,0 +1,8 @@
+- hosts: # /etc/ansible/hosts에 작성한 서버 그룹명 입력
+  become: true
+  tasks:
+    - name: Join workers
+      shell: kubeadm join "{master 서버 IP:port}" --token "{token 값}" --discovery-token-ca-cert-hash "{hash 값}"
+      register: joinmsg
+
+    - debug: var=joinmsg 

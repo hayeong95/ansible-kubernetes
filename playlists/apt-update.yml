@@ -1,0 +1,7 @@
+- hosts: # /etc/ansible/hosts에 작성한 서버 그룹명 입력
+  become: true
+  tasks:
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 86400 # 1 day
